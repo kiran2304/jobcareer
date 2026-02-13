@@ -2,7 +2,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import FilterBar from '../UI/FilterBar';
 import JobCard from '../UI/JobCard';
 import JobModal from '../UI/JobModal';
+import PreferenceBanner from '../UI/PreferenceBanner';
 import { jobs } from '../../data/jobs';
+import { calculateMatchScore } from '../../utils/scoring';
 
 const Dashboard = () => {
     const [filters, setFilters] = useState({
@@ -11,15 +13,20 @@ const Dashboard = () => {
         mode: '',
         experience: '',
         source: '',
-        sort: 'latest'
+        sort: 'latest',
+        onlyMatches: false
     });
 
     const [selectedJob, setSelectedJob] = useState(null);
     const [savedJobIds, setSavedJobIds] = useState([]);
+    const [preferences, setPreferences] = useState(null);
 
     useEffect(() => {
         const saved = JSON.parse(localStorage.getItem('savedJobs') || '[]');
         setSavedJobIds(saved);
+
+        const prefs = localStorage.getItem('jobTrackerPreferences');
+        if (prefs) setPreferences(JSON.parse(prefs));
     }, []);
 
     const handleFilterChange = (name, value) => {
@@ -37,8 +44,25 @@ const Dashboard = () => {
         localStorage.setItem('savedJobs', JSON.stringify(updated));
     };
 
+    const extractSalary = (range) => {
+        const matches = range.match(/(\d+)/g);
+        if (!matches) return 0;
+        // Handle "₹25k–₹40k/month" style by converting to annual equivalent
+        if (range.toLowerCase().includes('month')) {
+            return parseInt(matches[0]) * 0.12; // Crude conversion to LPA decimal
+        }
+        return parseFloat(matches[0]);
+    };
+
+    const scoredJobs = useMemo(() => {
+        return jobs.map(job => ({
+            ...job,
+            matchScore: preferences ? calculateMatchScore(job, preferences) : null
+        }));
+    }, [preferences]);
+
     const filteredJobs = useMemo(() => {
-        return jobs
+        return scoredJobs
             .filter(job => {
                 const matchesQuery = job.title.toLowerCase().includes(filters.query.toLowerCase()) ||
                     job.company.toLowerCase().includes(filters.query.toLowerCase());
@@ -47,25 +71,38 @@ const Dashboard = () => {
                 const matchesExperience = !filters.experience || job.experience === filters.experience;
                 const matchesSource = !filters.source || job.source === filters.source;
 
-                return matchesQuery && matchesLocation && matchesMode && matchesExperience && matchesSource;
+                const matchesThreshold = !filters.onlyMatches ||
+                    (job.matchScore !== null && job.matchScore >= (preferences?.minMatchScore || 0));
+
+                return matchesQuery && matchesLocation && matchesMode && matchesExperience && matchesSource && matchesThreshold;
             })
             .sort((a, b) => {
                 if (filters.sort === 'latest') return a.postedDaysAgo - b.postedDaysAgo;
                 if (filters.sort === 'oldest') return b.postedDaysAgo - a.postedDaysAgo;
+                if (filters.sort === 'score') return (b.matchScore || 0) - (a.matchScore || 0);
+                if (filters.sort === 'salary') return extractSalary(b.salaryRange) - extractSalary(a.salaryRange);
                 return 0;
             });
-    }, [filters]);
+    }, [scoredJobs, filters, preferences]);
 
     return (
         <div className="dashboard-page">
+            {!preferences && <PreferenceBanner />}
+
             <div className="dashboard-header flex justify-between items-end mb-4">
                 <div>
                     <h1 className="serif">Job Dashboard</h1>
-                    <p className="text-muted">Showing {filteredJobs.length} available opportunities</p>
+                    <p className="text-muted">
+                        {preferences ? "Personalized matches based on your preferences." : "Explore available opportunities across India."}
+                    </p>
                 </div>
             </div>
 
-            <FilterBar filters={filters} onFilterChange={handleFilterChange} />
+            <FilterBar
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                hasPreferences={!!preferences}
+            />
 
             <div className="job-grid mt-4">
                 {filteredJobs.length > 0 ? (
@@ -76,12 +113,17 @@ const Dashboard = () => {
                             onView={setSelectedJob}
                             onSave={handleSave}
                             isSaved={savedJobIds.includes(job.id)}
+                            matchScore={job.matchScore}
                         />
                     ))
                 ) : (
                     <div className="col-span-full py-20 text-center">
                         <h3 className="serif text-muted">No matches found.</h3>
-                        <p className="text-muted">Try adjusting your filters to see more results.</p>
+                        <p className="text-muted">
+                            {filters.onlyMatches ?
+                                "No roles match your criteria. Adjust filters or lower threshold." :
+                                "Try adjusting your filters to see more results."}
+                        </p>
                     </div>
                 )}
             </div>
