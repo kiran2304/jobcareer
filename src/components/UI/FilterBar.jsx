@@ -66,6 +66,17 @@ const FilterBar = ({ filters, onFilterChange, hasPreferences }) => {
           </select>
           <ChevronDown size={14} className="chevron" />
         </div>
+
+        <div className="select-wrapper">
+          <select name="status" value={filters.status} onChange={handleChange}>
+            <option value="">All Status</option>
+            <option value="Not Applied">Not Applied</option>
+            <option value="Applied">Applied</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Selected">Selected</option>
+          </select>
+          <ChevronDown size={14} className="chevron" />
+        </div>
       </div>
 
       <div className="flex items-center justify-between gap-2 flex-wrap pt-2 border-top">
