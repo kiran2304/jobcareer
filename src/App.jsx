@@ -8,6 +8,10 @@ import Digest from './components/Pages/Digest';
 import Settings from './components/Pages/Settings';
 import Proof from './components/Pages/Proof';
 
+import Analyze from './components/Pages/Analyze';
+import History from './components/Pages/History';
+import Results from './components/Pages/Results';
+
 function App() {
   return (
     <BrowserRouter>
@@ -21,6 +25,12 @@ function App() {
 
         <main className="content-area">
           <Routes>
+            {/* New Platform Routes */}
+            <Route path="/analyze" element={<Analyze />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/results" element={<Results />} />
+
+            {/* Existing Routes */}
             <Route path="/" element={<Landing />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/saved" element={<Saved />} />

@@ -14,6 +14,8 @@ const TopBar = ({ projectName = "KodNest Premium", currentStep = 1, totalSteps =
   };
 
   const navLinks = [
+    { name: 'Analyze', path: '/analyze' },
+    { name: 'History', path: '/history' },
     { name: 'Dashboard', path: '/dashboard' },
     { name: 'Saved', path: '/saved' },
     { name: 'Digest', path: '/digest' },
