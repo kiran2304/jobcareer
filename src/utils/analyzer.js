@@ -136,6 +136,54 @@ export const analyzeJD = (jdText, company, role) => {
         questions.push(generics[i]);
     }
 
+    // D) Company Intel & Round Mapping Engine
+    let companyIntel = null;
+    let roundMapping = [];
+
+    if (company && company.trim().length > 0) {
+        const compLower = company.toLowerCase().trim();
+        const enterpriseList = ['amazon', 'google', 'microsoft', 'meta', 'apple', 'netflix', 'infosys', 'tcs', 'wipro', 'hcl', 'cognizant', 'accenture', 'ibm', 'oracle', 'cisco'];
+
+        const isEnterprise = enterpriseList.some(ent => compLower.includes(ent));
+        const size = isEnterprise ? 'Enterprise (2000+)' : 'Startup (<200)';
+        const industry = 'Technology Services'; // Default heuristic
+
+        const focus = isEnterprise
+            ? "Structured DSA, Core Computer Science fundamentals, and system design at scale."
+            : "Practical problem solving, deep framework knowledge (stack depth), and rapid execution.";
+
+        companyIntel = {
+            name: company,
+            industry,
+            size,
+            focus
+        };
+
+        // Generate Dynamic Round Mapping based on intel + skills
+        if (isEnterprise || extractedSkills["Core CS"] || hasSkill("c++") || hasSkill("java")) {
+            roundMapping = [
+                { round: "Round 1: Online Assessment", focus: "DSA + Aptitude", whyItMatters: "Filters candidates at scale. Tests raw problem-solving speed and logical reasoning." },
+                { round: "Round 2: Technical Interview 1", focus: "Core CS + Algorithms", whyItMatters: "Evaluates your grasp of data structures, time complexity, and foundational OS/DBMS concepts." },
+                { round: "Round 3: Technical Interview 2", focus: "System Design / Projects", whyItMatters: "Tests your ability to architect scalable solutions and explain your previous engineering decisions." },
+                { round: "Round 4: HR / Behavioral Fit", focus: "Culture & Values", whyItMatters: "Assesses alignment with company leadership principles and standard behavioral scenarios." }
+            ];
+        } else {
+            roundMapping = [
+                { round: "Round 1: Practical Coding", focus: "Take-home or Live Pairing", whyItMatters: "Startups need you to build from day one. This tests your ability to write production-ready code quickly." },
+                { round: "Round 2: Technical Deep Dive", focus: "Stack + System Discussion", whyItMatters: "Validates your depth in their specific stack (e.g., React/Node) and your approach to building features." },
+                { round: "Round 3: Founder / Culture Fit", focus: "Vision & Execution", whyItMatters: "Startups are tight-knit. They want to ensure you share their urgency, vision, and adaptability." }
+            ];
+        }
+    } else {
+        // Fallback Mapping if no company
+        roundMapping = [
+            { round: "Round 1: Initial Screening", focus: "Aptitude & Basics", whyItMatters: "Standard baseline test for immediate disqualification." },
+            { round: "Round 2: Technical Core", focus: "Algorithms & Concepts", whyItMatters: "Proves your Computer Science foundation." },
+            { round: "Round 3: Tech & Projects", focus: "Frameworks & Experience", whyItMatters: "Shows you can apply theory to real-world applications." },
+            { round: "Round 4: HR / Managerial", focus: "Behavioral", whyItMatters: "Confirms you are a good team player and culture fit." }
+        ];
+    }
+
     return {
         id: Date.now().toString(),
         createdAt: new Date().toISOString(),
@@ -146,6 +194,8 @@ export const analyzeJD = (jdText, company, role) => {
         plan,
         checklist,
         questions,
-        readinessScore: score
+        readinessScore: score,
+        companyIntel,
+        roundMapping
     };
 };

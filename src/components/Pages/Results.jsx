@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Card from '../UI/Card';
-import { Target, CheckCircle2, ChevronRight, Activity, Calendar, Copy, Download, ThumbsUp, AlertCircle } from 'lucide-react';
+import { Target, CheckCircle2, ChevronRight, Activity, Calendar, Copy, Download, ThumbsUp, AlertCircle, Building2, Briefcase, Users, Info } from 'lucide-react';
 
 const Results = () => {
     const location = useLocation();
@@ -22,7 +22,7 @@ const Results = () => {
     }, [location.state, navigate]);
 
     const safeResult = result || {};
-    const { id, company, role, extractedSkills = {}, readinessScore: baseScore = 35, checklist = [], plan = [], questions = [] } = safeResult;
+    const { id, company, role, extractedSkills = {}, readinessScore: baseScore = 35, checklist = [], plan = [], questions = [], companyIntel, roundMapping } = safeResult;
 
     // Derived states
     const allExpectedSkills = Object.values(extractedSkills).flat();
@@ -157,6 +157,44 @@ ${questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
             </div>
 
             <div className="flex flex-col gap-6 mt-8">
+                {/* Company Intel Box */}
+                {companyIntel && (
+                    <Card title="Company Intelligence">
+                        <div className="flex flex-col md:flex-row gap-6">
+                            <div className="flex-1 bg-primary border rounded p-4 flex flex-col gap-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-[rgba(var(--accent-hsl),0.1)] text-accent rounded-full"><Building2 size={20} /></div>
+                                    <div>
+                                        <p className="text-xs text-muted uppercase font-bold tracking-wider">Company</p>
+                                        <p className="font-semibold">{companyIntel.name}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-[rgba(var(--accent-hsl),0.1)] text-accent rounded-full"><Briefcase size={20} /></div>
+                                    <div>
+                                        <p className="text-xs text-muted uppercase font-bold tracking-wider">Industry inferred</p>
+                                        <p className="font-semibold">{companyIntel.industry}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-[rgba(var(--accent-hsl),0.1)] text-accent rounded-full"><Users size={20} /></div>
+                                    <div>
+                                        <p className="text-xs text-muted uppercase font-bold tracking-wider">Estimated Size</p>
+                                        <p className="font-semibold">{companyIntel.size}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex-[2] border rounded p-5 bg-secondary flex flex-col justify-center">
+                                <h4 className="font-serif text-lg mb-2 flex items-center gap-2"><Target size={20} className="text-accent" /> Typical Hiring Focus</h4>
+                                <p className="text-sm leading-relaxed text-body">{companyIntel.focus}</p>
+                            </div>
+                        </div>
+                        <p className="text-xs text-muted mt-4 opacity-70 italic flex items-center gap-1">
+                            <Info size={12} /> Demo Mode: Company intel and size are generated heuristically based on known patterns.
+                        </p>
+                    </Card>
+                )}
+
                 {/* Extracted Skills - Interactive */}
                 <Card title="Skill Self-Assessment">
                     <p className="text-muted text-sm mb-4">Click skills to toggle your confidence. Your score will update dynamically.</p>
@@ -203,24 +241,43 @@ ${questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
                 </Card>
 
                 <div className="grid-2-col gap-6">
-                    {/* Round-wise Checklist */}
-                    <Card title="Round-wise Checklist">
-                        <div className="flex flex-col gap-6">
-                            {checklist.map((round) => (
-                                <div key={round.round}>
-                                    <h4 className="font-bold text-sm text-accent mb-3 flex items-center gap-2">
-                                        <Activity size={16} /> {round.round}
-                                    </h4>
-                                    <ul className="flex flex-col gap-2">
-                                        {round.items.map((item, idx) => (
-                                            <li key={idx} className="flex items-start gap-2 text-sm">
-                                                <CheckCircle2 size={16} className="text-muted mt-0.5 flex-shrink-0" />
-                                                <span>{item}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            ))}
+                    {/* Dynamic Round Mapping Timeline */}
+                    <Card title="Interview Round Timeline">
+                        <div className="flex flex-col relative pl-6">
+                            {/* Vertical Line */}
+                            <div className="absolute left-[11px] top-2 bottom-6 w-[2px] bg-border-color timeline-line"></div>
+
+                            {(roundMapping && roundMapping.length > 0 ? roundMapping : checklist).map((round, idx) => {
+                                // Support both new dynamic roundMapping and legacy checklist schema
+                                const isLegacy = !round.whyItMatters;
+                                return (
+                                    <div key={idx} className="timeline-item relative mb-8 last:mb-0">
+                                        <div className="absolute -left-[30px] top-1 w-6 h-6 rounded-full bg-[var(--bg-secondary)] border-2 border-accent flex items-center justify-center timeline-dot">
+                                            <div className="w-2 h-2 rounded-full bg-accent"></div>
+                                        </div>
+                                        <h4 className="font-bold text-sm mb-1">{isLegacy ? round.round : round.round}</h4>
+                                        <p className="text-sm font-semibold text-accent mb-2">{isLegacy ? "Focus Areas" : round.focus}</p>
+
+                                        {!isLegacy && (
+                                            <p className="text-sm text-body leading-relaxed bg-[var(--bg-primary)] p-3 rounded border border-[rgba(var(--accent-hsl),0.2)] mb-3">
+                                                <span className="font-semibold text-muted block mb-1 text-xs uppercase tracking-wider">Why this round matters</span>
+                                                {round.whyItMatters}
+                                            </p>
+                                        )}
+
+                                        {isLegacy && round.items && (
+                                            <ul className="flex flex-col gap-2 mt-2">
+                                                {round.items.map((item, i) => (
+                                                    <li key={i} className="flex items-start gap-2 text-sm">
+                                                        <CheckCircle2 size={16} className="text-muted mt-0.5 flex-shrink-0" />
+                                                        <span>{item}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </Card>
 
@@ -371,6 +428,13 @@ ${questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
           border-color: rgba(var(--accent-hsl), 0.2);
         }
         .text-accent { color: var(--accent); }
+
+        .timeline-line {
+            background-color: var(--border-color);
+        }
+        .bg-border-color {
+            background-color: var(--border-color);
+        }
       `}} />
         </div>
     );
